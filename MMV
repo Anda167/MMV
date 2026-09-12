@@ -1,4 +1,8 @@
--- [[ ท่อนที่ 1: CORE UI & DESIGN ]]
+-- [[ MM2 ANTI-MURDER PREMIUM HUB (FULL SCRIPT 1-3) ]]
+
+-- ========================================================
+-- 📌 ท่อนที่ 1: CORE UI & DESIGN (สร้างหน้าต่างเมนูหลัก)
+-- ========================================================
 if game:GetService("CoreGui"):FindFirstChild("MM2_CustomHub") then
     game:GetService("CoreGui")["MM2_CustomHub"]:Destroy()
 end
@@ -37,7 +41,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -50, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "🎯 MM2 CUSTOM HUB | PREMIUM"
+Title.Text = "🎯 MM2 ANTI-MURDER HUB | PREMIUM"
 Title.TextColor3 = Color3.fromRGB(180, 100, 255)
 Title.TextSize = 16
 Title.Font = Enum.Font.GothamBold
@@ -84,14 +88,15 @@ OpenCorner.Parent = OpenBtn
 
 CloseBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false OpenBtn.Visible = true end)
 OpenBtn.MouseButton1Click:Connect(function() MainFrame.Visible = true OpenBtn.Visible = false end)
-shared.MM2_Content = Content
--- [[ ท่อนที่ 2: FUNCTIONS UI BUTTONS ]]
-local Content = shared.MM2_Content or game:GetService("CoreGui")["MM2_CustomHub"]["MainFrame"]["ContentFrame"]
+
+-- ========================================================
+-- 📌 ท่อนที่ 2: FUNCTIONS UI BUTTONS (ระบบปุ่มและกลไกวาร์ป)
+-- ========================================================
 local Workspace = game:GetService("Workspace")
 local LocalPlayer = game:GetService("Players").LocalPlayer
 
-shared.HitboxEnabled = false
-shared.HitboxSize = 15
+shared.MurdHitboxEnabled = false
+shared.MurdHitboxSize = 6.5 -- ขนาดนี้ยิงโดนแน่นอน 100% ไม่โดนระบบเซิร์ฟเวอร์บล็อกดาเมจ
 shared.ESPEnabled = false
 
 local function CreateToggle(name, default, callback)
@@ -132,8 +137,8 @@ local function CreateToggle(name, default, callback)
     end)
 end
 
-CreateToggle("⚔️ เปิดใช้งาน Hitbox Expander", false, function(v) shared.HitboxEnabled = v end)
-CreateToggle("👁️ เปิดใช้งาน ESP มองทะลุแบ่งสี", false, function(v) shared.ESPEnabled = v end)
+CreateToggle("⚔️ ขยาย Hitbox (เฉพาะฆาตกรเท่านั้น)", false, function(v) shared.MurdHitboxEnabled = v end)
+CreateToggle("👁️ เปิดใช้งาน ESP มองทะลุแบ่งสีบทบาท", false, function(v) shared.ESPEnabled = v end)
 
 local BtnBg = Instance.new("TextButton")
 BtnBg.Size = UDim2.new(1, 0, 0, 40)
@@ -157,10 +162,12 @@ BtnBg.MouseButton1Click:Connect(function()
         LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(targetPos + Vector3.new(0, 2, 0))
     end
 end)
--- [[ ท่อนที่ 3: SYSTEM LOOPS ]]
+
+-- ========================================================
+-- 📌 ท่อนที่ 3: SYSTEM LOOPS (ระบบประมวลผลเช็คตำแหน่งหลังบ้าน)
+-- ========================================================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local LocalPlayer = Players.LocalPlayer
 
 local function GetPlayerRole(player)
     if player.Backpack:FindFirstChild("Knife") or (player.Character and player.Character:FindFirstChild("Knife")) then
@@ -175,22 +182,26 @@ end
 RunService.RenderStepped:Connect(function()
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
-            
             local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+            local role = GetPlayerRole(player)
+            
+            -- บล็อกตรวจสอบและเปิดใช้ Hitbox (เฉพาะฆาตกร)
             if hrp then
-                if shared.HitboxEnabled then
-                    hrp.Size = Vector3.new(shared.HitboxSize, shared.HitboxSize, shared.HitboxSize)
-                    hrp.Transparency = 0.7
-                    hrp.BrickColor = BrickColor.new("Medium purple")
+                if shared.MurdHitboxEnabled and role == "Murderer" then
+                    hrp.Size = Vector3.new(shared.MurdHitboxSize, shared.MurdHitboxSize, shared.MurdHitboxSize)
+                    hrp.Transparency = 0.6
+                    hrp.BrickColor = BrickColor.new("Really red") -- กล่องสีแดงแจ้งเตือนฆาตกร
                     hrp.Material = Enum.Material.Neon
                     hrp.CanCollide = false
                 else
+                    -- คืนค่าขนาดปกติ
                     hrp.Size = Vector3.new(2, 2, 1)
                     hrp.Transparency = 1
                     hrp.CanCollide = true
                 end
             end
             
+            -- บล็อกทำงาน ESP มองทะลุ
             local highlight = player.Character:FindFirstChildOfClass("Highlight")
             if shared.ESPEnabled then
                 if not highlight then
@@ -199,15 +210,15 @@ RunService.RenderStepped:Connect(function()
                     highlight.FillTransparency = 0.5
                     highlight.OutlineTransparency = 0
                 end
-                local role = GetPlayerRole(player)
+                
                 if role == "Murderer" then
-                    highlight.FillColor = Color3.fromRGB(255, 50, 50)
+                    highlight.FillColor = Color3.fromRGB(255, 50, 50)     -- แดง = ฆาตกร
                     highlight.OutlineColor = Color3.fromRGB(255, 50, 50)
                 elseif role == "Sheriff" then
-                    highlight.FillColor = Color3.fromRGB(50, 150, 255)
+                    highlight.FillColor = Color3.fromRGB(50, 150, 255)   -- น้ำเงิน = นายอำเภอ
                     highlight.OutlineColor = Color3.fromRGB(50, 150, 255)
                 else
-                    highlight.FillColor = Color3.fromRGB(80, 255, 80)
+                    highlight.FillColor = Color3.fromRGB(80, 255, 80)     -- เขียว = คนธรรมดา
                     highlight.OutlineColor = Color3.fromRGB(80, 255, 80)
                 end
             else
