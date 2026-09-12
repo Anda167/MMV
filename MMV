@@ -1,12 +1,12 @@
--- [[ Rayfield UI Booting ]]
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu'))()
+-- [[ Rayfield UI Booting - ปรับลิงก์ให้รองรับทุกตัวรัน ]]
+local Rayfield = loadstring(game:HttpGet('https://githubusercontent.com'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "🎯 MM2 Premium Hub | Beautiful UI",
+   Name = "🎯 MM2 Premium Hub | Fixed Version",
    LoadingTitle = "⚡ Loading Scripts...",
    LoadingSubtitle = "by AI Assistant",
    ConfigurationSaving = {
-      Enabled = true,
+      Enabled = false, -- ปิดไว้ก่อนป้องกันตัวรันบางตัว Error ตอนสร้างโฟลเดอร์ ค่อยเปิดทีหลังได้
       FolderName = "MM2_PremiumHub",
       FileName = "Config"
    },
@@ -22,18 +22,161 @@ local Window = Rayfield:CreateWindow({
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
-
 local LocalPlayer = Players.LocalPlayer
 
--- States for Functions
+-- States
 local HitboxEnabled = false
 local HitboxSize = 10
 local ESPEnabled = false
 
 -- [[ Tabs UI ]]
-local CombatTab = Window:CreateTab("⚔️ Combat", 4483362458)
-local VisualsTab = Window:CreateTab("👁️ Visuals", 4483362458)
-local TeleportTab = Window:CreateTab("🌀 Teleport", 4483362458)
+local CombatTab = Window:CreateTab("⚔️ Combat", nil)
+local VisualsTab = Window:CreateTab("👁️ Visuals", nil)
+local TeleportTab = Window:CreateTab("🌀 Teleport", nil)
+
+-- ========================================================
+-- ⚔️ COMBAT TAB (Hitbox Expander)
+-- ========================================================
+CombatTab:CreateSection("Hitbox Expander")
+
+CombatTab:CreateToggle({
+   Name = "Enable Hitbox Expander",
+   CurrentValue = false,
+   Flag = "HitboxToggle",
+   Callback = function(Value)
+      HitboxEnabled = Value
+   end,
+})
+
+-- แก้ไขรูปแบบ Slider ให้ตรงตาม Rayfield Update ล่าสุด
+CombatTab:CreateSlider({
+   Name = "Hitbox Size",
+   Range = {2, 30},
+   Increment = 1,
+   Suffix = " Studs",
+   CurrentValue = 10,
+   Flag = "HitboxSlider",
+   Callback = function(Value)
+      HitboxSize = Value
+   end,
+})
+
+-- Loop ทำงานเบาๆ ไม่กระตุก
+RunService.RenderStepped:Connect(function()
+   if HitboxEnabled then
+      for _, player in ipairs(Players:GetPlayers()) do
+         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = player.Character.HumanoidRootPart
+            hrp.Size = Vector3.new(HitboxSize, HitboxSize, HitboxSize)
+            hrp.Transparency = 0.7 
+            hrp.BrickColor = BrickColor.new("Really blue")
+            hrp.Material = Enum.Material.Neon
+            hrp.CanCollide = false
+         end
+      end
+   end
+end)
+
+-- ========================================================
+-- 👁️ VISUALS TAB (ESP Role Highlight)
+-- ========================================================
+VisualsTab:CreateSection("Role Highlights")
+
+VisualsTab:CreateToggle({
+   Name = "Enable Role ESP (Wallhack)",
+   CurrentValue = false,
+   Flag = "ESPToggle",
+   Callback = function(Value)
+      ESPEnabled = Value
+   end,
+})
+
+local function GetPlayerRole(player)
+   if player.Backpack:FindFirstChild("Knife") or (player.Character and player.Character:FindFirstChild("Knife")) then
+      return "Murderer"
+   elseif player.Backpack:FindFirstChild("Gun") or (player.Character and player.Character:FindFirstChild("Gun")) then
+      return "Sheriff"
+   else
+      return "Innocent"
+   end
+end
+
+RunService.RenderStepped:Connect(function()
+   for _, player in ipairs(Players:GetPlayers()) do
+      if player ~= LocalPlayer and player.Character then
+         local highlight = player.Character:FindFirstChildOfClass("Highlight")
+         
+         if ESPEnabled then
+            if not highlight then
+               highlight = Instance.new("Highlight")
+               highlight.Parent = player.Character
+               highlight.FillTransparency = 0.5
+               highlight.OutlineTransparency = 0
+            end
+            
+            local role = GetPlayerRole(player)
+            if role == "Murderer" then
+               highlight.FillColor = Color3.fromRGB(255, 0, 0)
+               highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
+            elseif role == "Sheriff" then
+               highlight.FillColor = Color3.fromRGB(0, 100, 255)
+               highlight.OutlineColor = Color3.fromRGB(0, 100, 255)
+            else
+               highlight.FillColor = Color3.fromRGB(0, 255, 0)
+               highlight.OutlineColor = Color3.fromRGB(0, 255, 0)
+            end
+         else
+            if highlight then
+               highlight:Destroy()
+            end
+         end
+      end
+   end
+end)
+
+-- ========================================================
+-- 🌀 TELEPORT TAB (TP To Gun)
+-- ========================================================
+TeleportTab:CreateSection("Gun Utilities")
+
+TeleportTab:CreateButton({
+   Name = "Teleport to Dropped Gun",
+   Callback = function()
+      local gunDrop = Workspace:FindFirstChild("GunDrop") or Workspace:FindFirstChild("Gun")
+      
+      if not gunDrop then
+         for _, child in ipairs(Workspace:GetChildren()) do
+            if child.Name == "GunDrop" or (child:IsA("Tool") and child.Name == "Gun") then
+               gunDrop = child
+               break
+            end
+         end
+      end
+
+      if gunDrop and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+         local targetPos = gunDrop:IsA("Tool") and gunDrop.Handle.Position or gunDrop.Position
+         LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(targetPos + Vector3.new(0, 2, 0))
+         
+         Rayfield:Notify({
+            Title = "Success!",
+            Content = "Teleported to the gun successfully.",
+            Duration = 3
+         })
+      else
+         Rayfield:Notify({
+            Title = "Not Found",
+            Content = "No dropped gun was found in the map right now.",
+            Duration = 3
+         })
+      end
+   end,
+})
+
+Rayfield:Notify({
+   Title = "Ready to Play!",
+   Content = "MM2 Hub fully loaded.",
+   Duration = 5
+})
 
 -- ========================================================
 -- ⚔️ COMBAT TAB (Hitbox Expander)
